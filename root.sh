@@ -4,42 +4,40 @@ ROOTFS_DIR=$(pwd)
 export PATH=$PATH:~/.local/usr/bin
 ARCH=$(uname -m)
 MAX_RETRIES=5
-TIMEOUT=5
-
-# Определяем архитектуру
-if [ "$ARCH" = "x86_64" ]; then
-    ARCH_ALT=amd64
-elif [ "$ARCH" = "aarch64" ]; then
-    ARCH_ALT=arm64
-else
-    echo "Unsupported CPU architecture: $ARCH"
-    exit 1
-fi
-
-echo "#######################################################################################"
-echo "#"
-echo "#                              Ubuntu FreeRoot 24.04 Server installer"
-echo "#"
-echo "#######################################################################################"
+TIMEOUT=10
 
 ROOTFS_FILE="$ROOTFS_DIR/rootfs.tar.gz"
 ROOTFS_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64-root.tar.xz"
 
-# Всегда скачиваем rootfs заново
+echo "#######################################################################################"
+echo "#"
+echo "#                  Ubuntu Server 22.04 (Jammy) FreeRoot installer"
+echo "#"
+echo "#######################################################################################"
+
+# Скачиваем rootfs заново
 echo "Downloading Ubuntu Server rootfs..."
 wget --tries=$MAX_RETRIES --timeout=$TIMEOUT --no-hsts -O "$ROOTFS_FILE" "$ROOTFS_URL" || {
     echo "Failed to download rootfs"
     exit 1
 }
 
-# Чистим старый rootfs перед распаковкой
+# Чистим старый rootfs
 echo "Extracting rootfs..."
 rm -rf "$ROOTFS_DIR/bin" "$ROOTFS_DIR/etc" "$ROOTFS_DIR/lib" "$ROOTFS_DIR/usr" "$ROOTFS_DIR/sbin" "$ROOTFS_DIR/tmp" 2>/dev/null
 mkdir -p "$ROOTFS_DIR"
-tar -xf "$ROOTFS_FILE" -C "$ROOTFS_DIR" || {
+
+# распаковка без попытки создать устройства
+tar --no-same-permissions --no-same-owner -xf "$ROOTFS_FILE" -C "$ROOTFS_DIR" || {
     echo "Failed to extract rootfs"
     exit 1
 }
+
+# создаём пустые файлы вместо устройств
+mkdir -p "$ROOTFS_DIR/dev"
+for f in console full null ptmx random tty urandom zero; do
+    touch "$ROOTFS_DIR/dev/$f"
+done
 
 # Скачиваем proot
 PROOT_FILE="$ROOTFS_DIR/usr/local/bin/proot"
@@ -52,14 +50,9 @@ wget --tries=$MAX_RETRIES --timeout=$TIMEOUT --no-hsts -O "$PROOT_FILE" \
 }
 chmod 755 "$PROOT_FILE"
 
-# Проверяем наличие /bin/sh и создаём симлинк, если нет
+# Симлинк /bin/sh
 if [ ! -f "$ROOTFS_DIR/bin/sh" ]; then
-    if [ -f "$ROOTFS_DIR/bin/bash" ]; then
-        ln -sf bash "$ROOTFS_DIR/bin/sh"
-    else
-        echo "Error: /bin/bash not found in rootfs"
-        exit 1
-    fi
+    ln -sf bash "$ROOTFS_DIR/bin/sh"
 fi
 
 # resolv.conf
@@ -80,7 +73,7 @@ display_gg() {
 clear
 display_gg
 
-# Запуск proot с systemd
+# Запуск proot
 "$PROOT_FILE" \
   --rootfs="$ROOTFS_DIR" \
   -0 -w "/root" -b /dev -b /sys -b /proc -b "$ROOTFS_DIR/etc/resolv.conf" --kill-on-exit
