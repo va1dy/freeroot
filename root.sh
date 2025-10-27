@@ -1,12 +1,15 @@
 #!/bin/sh
 
 ROOTFS_DIR=$(pwd)
+export PATH=$PATH:~/.local/usr/bin
+max_retries=50
+timeout=30
 ARCH=$(uname -m)
 
 if [ "$ARCH" = "x86_64" ]; then
   ARCH_ALT=amd64
 else
-  echo "Unsupported CPU architecture: ${ARCH}"
+  printf "Unsupported CPU architecture: ${ARCH}\n"
   exit 1
 fi
 
@@ -25,8 +28,8 @@ fi
 case $install_ubuntu in
   y)
     if [ ! -f /tmp/rootfs.tar.gz ]; then
-      echo "Downloading Ubuntu 24.04 with systemd..."
-      wget -v --tries=50 --timeout=30 -O /tmp/rootfs.tar.gz \
+      echo "Downloading Ubuntu 24.04 (rootfs WSL)..."
+      wget -v --tries=$max_retries --timeout=$timeout -O /tmp/rootfs.tar.gz \
         "https://cloud-images.ubuntu.com/wsl/releases/24.04/current/ubuntu-noble-wsl-amd64-24.04lts.rootfs.tar.gz"
       if [ $? -ne 0 ]; then
         echo "Failed to download Ubuntu. Exiting."
@@ -36,7 +39,7 @@ case $install_ubuntu in
 
     echo "Extracting rootfs..."
     mkdir -p $ROOTFS_DIR
-    tar -xf /tmp/rootfs.tar.gz -C $ROOTFS_DIR
+    tar --numeric-owner --no-same-owner --no-same-permissions -xzf /tmp/rootfs.tar.gz -C $ROOTFS_DIR
     ;;
   n|*)
     echo "Skipping Ubuntu installation."
@@ -56,11 +59,11 @@ if [ ! -e $ROOTFS_DIR/.installed ]; then
   PROOT_URL="https://raw.githubusercontent.com/foxytouxxx/freeroot/main/proot-${ARCH}"
 
   echo "Downloading proot..."
-  wget --tries=50 --timeout=30 -O $ROOTFS_DIR/usr/local/bin/proot "$PROOT_URL"
+  wget --tries=$max_retries --timeout=$timeout -O $ROOTFS_DIR/usr/local/bin/proot "$PROOT_URL"
 
   while [ ! -s "$ROOTFS_DIR/usr/local/bin/proot" ]; do
     rm -f $ROOTFS_DIR/usr/local/bin/proot
-    wget --tries=50 --timeout=30 -O $ROOTFS_DIR/usr/local/bin/proot "$PROOT_URL"
+    wget --tries=$max_retries --timeout=$timeout -O $ROOTFS_DIR/usr/local/bin/proot "$PROOT_URL"
     sleep 1
   done
 
@@ -70,6 +73,24 @@ fi
 if [ ! -e $ROOTFS_DIR/.installed ]; then
   mkdir -p $ROOTFS_DIR/etc
   printf "nameserver 1.1.1.1\nnameserver 1.0.0.1\n" > ${ROOTFS_DIR}/etc/resolv.conf
+
+  # Установим dbus и supervisor для управления демонами без systemd
+  $ROOTFS_DIR/usr/local/bin/proot --rootfs="$ROOTFS_DIR" -0 -w "/root" /bin/bash -c "\
+    apt update && \
+    apt install -y dbus supervisor"
+
+  # Создаем конфиг для supervisor, чтобы поднимать демоны автоматически
+  mkdir -p $ROOTFS_DIR/etc/supervisor/conf.d
+  cat <<EOF > $ROOTFS_DIR/etc/supervisor/conf.d/default.conf
+[supervisord]
+nodaemon=true
+
+[program:sshd]
+command=/usr/sbin/sshd -D
+autostart=true
+autorestart=true
+EOF
+
   rm -rf /tmp/rootfs.tar.gz /tmp/sbin
   touch $ROOTFS_DIR/.installed
 fi
@@ -81,13 +102,14 @@ RESET_COLOR='\e[0m'
 display_gg() {
   echo -e "${WHITE}___________________________________________________${RESET_COLOR}"
   echo -e ""
-  echo -e "           ${CYAN}-----> Ubuntu 24.04 installed with systemd! <----${RESET_COLOR}"
+  echo -e "           ${CYAN}-----> Ubuntu 24.04 installed! <----${RESET_COLOR}"
 }
 
 clear
 display_gg
 
+# Запуск proot с supervisor (демоны поднимутся автоматически)
 $ROOTFS_DIR/usr/local/bin/proot \
   --rootfs="$ROOTFS_DIR" \
   -0 -w "/root" -b /dev -b /sys -b /proc -b /etc/resolv.conf \
-  /bin/bash --login
+  /bin/bash -c "supervisord -c /etc/supervisor/conf.d/default.conf"
