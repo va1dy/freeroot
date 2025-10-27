@@ -23,7 +23,7 @@ echo "#"
 echo "#######################################################################################"
 
 ROOTFS_FILE="$ROOTFS_DIR/rootfs.tar.gz"
-ROOTFS_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.tar.gz"
+ROOTFS_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64-root.tar.xz"
 
 # Всегда скачиваем rootfs заново
 echo "Downloading Ubuntu Server rootfs..."
