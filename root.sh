@@ -74,7 +74,6 @@ display_gg() {
   echo -e "           ${CYAN}-----> Ubuntu 24.04 installed ! <----${RESET_COLOR}"
 }
 
-clear
 display_gg
 
 $ROOTFS_DIR/usr/local/bin/proot \
