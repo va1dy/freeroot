@@ -6,7 +6,6 @@ max_retries=50
 timeout=30
 ARCH=$(uname -m)
 
-# Определяем архитектуру
 if [ "$ARCH" = "x86_64" ]; then
   ARCH_ALT=amd64
 elif [ "$ARCH" = "aarch64" ]; then
@@ -48,16 +47,13 @@ case $install_ubuntu in
     ;;
 esac
 
-# Создаём рабочую директорию /root
 mkdir -p $ROOTFS_DIR/root
 
-# Проверяем наличие /bin/sh
 if [ ! -f $ROOTFS_DIR/bin/sh ]; then
   echo "Creating symlink /bin/sh -> /bin/bash"
   ln -s /bin/bash $ROOTFS_DIR/bin/sh
 fi
 
-# Установка proot
 if [ ! -e $ROOTFS_DIR/.installed ]; then
   mkdir -p $ROOTFS_DIR/usr/local/bin
   PROOT_URL="https://raw.githubusercontent.com/foxytouxxx/freeroot/main/proot-${ARCH}"
@@ -74,7 +70,6 @@ if [ ! -e $ROOTFS_DIR/.installed ]; then
   chmod 755 $ROOTFS_DIR/usr/local/bin/proot
 fi
 
-# Настройка resolv.conf
 if [ ! -e $ROOTFS_DIR/.installed ]; then
   mkdir -p $ROOTFS_DIR/etc
   printf "nameserver 1.1.1.1\nnameserver 1.0.0.1\n" > ${ROOTFS_DIR}/etc/resolv.conf
@@ -82,7 +77,6 @@ if [ ! -e $ROOTFS_DIR/.installed ]; then
   touch $ROOTFS_DIR/.installed
 fi
 
-# Цвета для вывода
 CYAN='\e[0;36m'
 WHITE='\e[0;37m'
 RESET_COLOR='\e[0m'
@@ -93,10 +87,8 @@ display_gg() {
   echo -e "           ${CYAN}-----> Ubuntu 24.04 installed ! <----${RESET_COLOR}"
 }
 
-clear
 display_gg
 
-# Запуск proot с корректным рабочим каталогом и shell
 $ROOTFS_DIR/usr/local/bin/proot \
   --rootfs="$ROOTFS_DIR" \
   -0 -w "/root" -b /dev -b /sys -b /proc -b /etc/resolv.conf \
