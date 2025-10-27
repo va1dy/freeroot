@@ -15,7 +15,6 @@ else
   exit 1
 fi
 
-# Установка Ubuntu
 if [ ! -e $ROOTFS_DIR/.installed ]; then
   echo "#######################################################################################"
   echo "#"
@@ -24,11 +23,12 @@ if [ ! -e $ROOTFS_DIR/.installed ]; then
   echo "#"
   echo "#######################################################################################"
 
-  read -p "Do you want to install Ubuntu? (YES/no): " install_ubuntu
+  read -p "Do you want to install Ubuntu? (y/n): " install_ubuntu
+  install_ubuntu=$(echo "$install_ubuntu" | tr '[:upper:]' '[:lower:]')
 fi
 
 case $install_ubuntu in
-  [yY][eE][sS])
+  y)
     if [ ! -f /tmp/rootfs.tar.gz ]; then
       echo "Downloading Ubuntu 24.04 for architecture: $ARCH_ALT ..."
       wget -v --tries=$max_retries --timeout=$timeout -O /tmp/rootfs.tar.gz \
@@ -40,9 +40,10 @@ case $install_ubuntu in
     fi
 
     echo "Extracting rootfs..."
+    mkdir -p $ROOTFS_DIR
     tar -xf /tmp/rootfs.tar.gz -C $ROOTFS_DIR
     ;;
-  *)
+  n|*)
     echo "Skipping Ubuntu installation."
     ;;
 esac
@@ -50,6 +51,7 @@ esac
 mkdir -p $ROOTFS_DIR/root
 
 if [ ! -f $ROOTFS_DIR/bin/sh ]; then
+  mkdir -p $ROOTFS_DIR/bin
   echo "Creating symlink /bin/sh -> /bin/bash"
   ln -s /bin/bash $ROOTFS_DIR/bin/sh
 fi
@@ -87,6 +89,7 @@ display_gg() {
   echo -e "           ${CYAN}-----> Ubuntu 24.04 installed ! <----${RESET_COLOR}"
 }
 
+clear
 display_gg
 
 $ROOTFS_DIR/usr/local/bin/proot \
