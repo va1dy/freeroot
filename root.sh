@@ -39,8 +39,8 @@ case $install_ubuntu in
 
     echo "Extracting rootfs..."
     mkdir -p $ROOTFS_DIR
-    # Игнорируем ошибки создания устройств
-    tar --numeric-owner --no-same-owner --no-same-permissions --warning=no-dev -xzf /tmp/rootfs.tar.gz -C $ROOTFS_DIR || true
+    # Игнорируем ошибки создания устройств и старые предупреждения tar
+    tar --numeric-owner --no-same-owner --no-same-permissions -xzf /tmp/rootfs.tar.gz -C $ROOTFS_DIR || true
     ;;
   n|*)
     echo "Skipping Ubuntu installation."
@@ -49,7 +49,7 @@ esac
 
 mkdir -p $ROOTFS_DIR/root
 
-# Проверка /bin/bash
+# Проверка /bin/bash и /bin/sh
 if [ ! -f $ROOTFS_DIR/bin/bash ]; then
     mkdir -p $ROOTFS_DIR/bin
     if [ -f $ROOTFS_DIR/usr/bin/bash ]; then
@@ -60,7 +60,6 @@ if [ ! -f $ROOTFS_DIR/bin/bash ]; then
     fi
 fi
 
-# Проверка /bin/sh
 if [ ! -f $ROOTFS_DIR/bin/sh ]; then
     ln -s /bin/bash $ROOTFS_DIR/bin/sh
 fi
