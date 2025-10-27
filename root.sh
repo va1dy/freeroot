@@ -49,10 +49,20 @@ esac
 
 mkdir -p $ROOTFS_DIR/root
 
+# Проверка /bin/bash
+if [ ! -f $ROOTFS_DIR/bin/bash ]; then
+    mkdir -p $ROOTFS_DIR/bin
+    if [ -f $ROOTFS_DIR/usr/bin/bash ]; then
+        ln -s /usr/bin/bash $ROOTFS_DIR/bin/bash
+    else
+        echo "[ERROR] Bash не найден в rootfs!"
+        exit 1
+    fi
+fi
+
+# Проверка /bin/sh
 if [ ! -f $ROOTFS_DIR/bin/sh ]; then
-  mkdir -p $ROOTFS_DIR/bin
-  echo "Creating symlink /bin/sh -> /bin/bash"
-  ln -s /bin/bash $ROOTFS_DIR/bin/sh
+    ln -s /bin/bash $ROOTFS_DIR/bin/sh
 fi
 
 # Установка proot и зависимостей, если ещё не установлено
@@ -77,7 +87,7 @@ if [ ! -e $ROOTFS_DIR/.installed ]; then
 
   # Установка dbus и supervisor внутри proot
   $ROOTFS_DIR/usr/local/bin/proot --rootfs="$ROOTFS_DIR" -0 -w "/root" /bin/bash -c "\
-    apt update && apt install -y dbus supervisor openssh-server"
+    apt update && apt install -y dbus supervisor openssh-server || true"
 
   # Создание конфигурации supervisor для демонов
   mkdir -p $ROOTFS_DIR/etc/supervisor/conf.d
