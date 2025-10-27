@@ -7,7 +7,7 @@ MAX_RETRIES=5
 TIMEOUT=10
 
 ROOTFS_FILE="$ROOTFS_DIR/rootfs.tar.gz"
-ROOTFS_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64-root.tar.xz"
+ROOTFS_URL="https://cloud-images.ubuntu.com/releases/noble/release/ubuntu-24.04-server-cloudimg-amd64.tar.gz"
 
 echo "#######################################################################################"
 echo "#"
