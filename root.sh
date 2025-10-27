@@ -34,7 +34,7 @@ case "${install_ubuntu:-n}" in
   y)
     if [ ! -f /tmp/rootfs.tar.gz ]; then
     echo "Downloading Ubuntu 24.04 for architecture: $ARCH_ALT ..."
-      URL="https://cloud-images.ubuntu.com/releases/mantic/release/ubuntu-23.10-server-cloudimg-${ARCH_ALT}.tar.gz"
+      URL="https://cloud-images.ubuntu.com/wsl/releases/24.04/current/ubuntu-noble-wsl-amd64-24.04lts.rootfs.tar.gz"
       # try wget or curl
       if command -v wget >/dev/null 2>&1; then
         wget -v --tries="$max_retries" --timeout="$timeout" -O /tmp/rootfs.tar.gz "$URL"
