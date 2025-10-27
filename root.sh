@@ -16,60 +16,46 @@ else
     exit 1
 fi
 
-# Проверка rootfs
-if [ ! -e "$ROOTFS_DIR/.installed" ]; then
-    echo "#######################################################################################"
-    echo "#"
-    echo "#                              Ubuntu FreeRoot 24.04 installer"
-    echo "#"
-    echo "#######################################################################################"
+echo "#######################################################################################"
+echo "#"
+echo "#                              Ubuntu FreeRoot 24.04 installer"
+echo "#"
+echo "#######################################################################################"
 
-    read -p "Do you want to install Ubuntu? (YES/no): " install_ubuntu
-fi
+ROOTFS_FILE="$ROOTFS_DIR/rootfs.tar.gz"
 
-case $install_ubuntu in
-    [yY][eE][sS])
-        ROOTFS_FILE="$ROOTFS_DIR/rootfs.tar.gz"
+# Всегда скачиваем rootfs заново
+echo "Downloading Ubuntu rootfs..."
+wget --tries=$MAX_RETRIES --timeout=$TIMEOUT --no-hsts -O "$ROOTFS_FILE" \
+"http://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.3-base-amd64.tar.gz" || {
+    echo "Failed to download rootfs"
+    exit 1
+}
 
-        if [ ! -f "$ROOTFS_FILE" ]; then
-            echo "Downloading Ubuntu rootfs..."
-            wget --tries=$MAX_RETRIES --timeout=$TIMEOUT --no-hsts -O "$ROOTFS_FILE" \
-            "http://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.3-base-amd64.tar.gz" || {
-                echo "Failed to download rootfs"
-                exit 1
-            }
-        else
-            echo "Rootfs already exists, skipping download."
-        fi
-
-        echo "Extracting rootfs..."
-        tar -xf "$ROOTFS_FILE" -C "$ROOTFS_DIR" || {
-            echo "Failed to extract rootfs"
-            exit 1
-        }
-        ;;
-    *)
-        echo "Skipping Ubuntu installation."
-        ;;
-esac
+# Чистим старый rootfs перед распаковкой
+echo "Extracting rootfs..."
+rm -rf "$ROOTFS_DIR/rootfs" "$ROOTFS_DIR/bin" "$ROOTFS_DIR/etc" "$ROOTFS_DIR/lib" "$ROOTFS_DIR/usr" "$ROOTFS_DIR/sbin" "$ROOTFS_DIR/tmp" 2>/dev/null
+mkdir -p "$ROOTFS_DIR"
+tar -xf "$ROOTFS_FILE" -C "$ROOTFS_DIR" || {
+    echo "Failed to extract rootfs"
+    exit 1
+}
 
 # Скачиваем proot
 PROOT_FILE="$ROOTFS_DIR/usr/local/bin/proot"
-if [ ! -s "$PROOT_FILE" ]; then
-    mkdir -p "$ROOTFS_DIR/usr/local/bin"
-    echo "Downloading proot binary..."
-    wget --tries=$MAX_RETRIES --timeout=$TIMEOUT --no-hsts -O "$PROOT_FILE" \
-    "https://raw.githubusercontent.com/foxytouxxx/freeroot/main/proot-${ARCH}" || {
-        echo "Failed to download proot"
-        exit 1
-    }
-    chmod 755 "$PROOT_FILE"
-fi
+mkdir -p "$ROOTFS_DIR/usr/local/bin"
+echo "Downloading proot binary..."
+wget --tries=$MAX_RETRIES --timeout=$TIMEOUT --no-hsts -O "$PROOT_FILE" \
+"https://raw.githubusercontent.com/foxytouxxx/freeroot/main/proot-${ARCH}" || {
+    echo "Failed to download proot"
+    exit 1
+}
+chmod 755 "$PROOT_FILE"
 
-# Проверяем наличие /bin/sh в rootfs
+# Проверяем наличие /bin/sh и создаём симлинк, если нет
 if [ ! -f "$ROOTFS_DIR/bin/sh" ]; then
     if [ -f "$ROOTFS_DIR/bin/bash" ]; then
-        ln -s bash "$ROOTFS_DIR/bin/sh"
+        ln -sf bash "$ROOTFS_DIR/bin/sh"
     else
         echo "Error: /bin/bash not found in rootfs"
         exit 1
@@ -77,13 +63,8 @@ if [ ! -f "$ROOTFS_DIR/bin/sh" ]; then
 fi
 
 # resolv.conf
-if [ ! -e "$ROOTFS_DIR/etc/resolv.conf" ]; then
-    mkdir -p "$ROOTFS_DIR/etc"
-    echo -e "nameserver 1.1.1.1\nnameserver 1.0.0.1" > "$ROOTFS_DIR/etc/resolv.conf"
-fi
-
-# Пометка, что установка завершена
-touch "$ROOTFS_DIR/.installed"
+mkdir -p "$ROOTFS_DIR/etc"
+echo -e "nameserver 1.1.1.1\nnameserver 1.0.0.1" > "$ROOTFS_DIR/etc/resolv.conf"
 
 # Цвета для вывода
 CYAN='\e[0;36m'
