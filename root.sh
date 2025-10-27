@@ -2,10 +2,8 @@
 
 ROOTFS_DIR=$(pwd)
 export PATH=$PATH:~/.local/usr/bin
-ARCH=$(uname -m)
-MAX_RETRIES=5
-TIMEOUT=10
-
+max_retries=50
+timeout=1
 ARCH=$(uname -m)
 
 if [ "$ARCH" = "x86_64" ]; then
@@ -17,74 +15,68 @@ else
   exit 1
 fi
 
-ROOTFS_FILE="$ROOTFS_DIR/rootfs.tar.gz"
-ROOTFS_URL="http://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.3-base-${ARCH_ALT}.tar.gz"
+if [ ! -e $ROOTFS_DIR/.installed ]; then
+  echo "#######################################################################################"
+  echo "#"
+  echo "#                                      Ubuntu 24.04 INSTALLER"
+  echo "#                                     by va1dy(foxytouxxx fork)"
+  echo "#"
+  echo "#######################################################################################"
 
-echo "#######################################################################################"
-echo "#"
-echo "#                  Ubuntu Server 22.04 (Jammy) FreeRoot installer"
-echo "#"
-echo "#######################################################################################"
-
-# Скачиваем rootfs заново
-echo "Downloading Ubuntu Server rootfs..."
-wget --tries=$MAX_RETRIES --timeout=$TIMEOUT --no-hsts -O "$ROOTFS_FILE" "$ROOTFS_URL" || {
-    echo "Failed to download rootfs"
-    exit 1
-}
-
-# Чистим старый rootfs
-echo "Extracting rootfs..."
-rm -rf "$ROOTFS_DIR/bin" "$ROOTFS_DIR/etc" "$ROOTFS_DIR/lib" "$ROOTFS_DIR/usr" "$ROOTFS_DIR/sbin" "$ROOTFS_DIR/tmp" 2>/dev/null
-mkdir -p "$ROOTFS_DIR"
-
-# распаковка без создания устройств (для Replit)
-tar --no-same-permissions --no-same-owner -xf "$ROOTFS_FILE" -C "$ROOTFS_DIR" || {
-    echo "Failed to extract rootfs"
-    exit 1
-}
-
-# создаём пустые файлы вместо устройств
-mkdir -p "$ROOTFS_DIR/dev"
-for f in console full null ptmx random tty urandom zero; do
-    touch "$ROOTFS_DIR/dev/$f"
-done
-
-# Скачиваем proot
-PROOT_FILE="$ROOTFS_DIR/usr/local/bin/proot"
-mkdir -p "$ROOTFS_DIR/usr/local/bin"
-echo "Downloading proot binary..."
-wget --tries=$MAX_RETRIES --timeout=$TIMEOUT --no-hsts -O "$PROOT_FILE" \
-"https://raw.githubusercontent.com/foxytouxxx/freeroot/main/proot-${ARCH}" || {
-    echo "Failed to download proot"
-    exit 1
-}
-chmod 755 "$PROOT_FILE"
-
-# Симлинк /bin/sh
-if [ ! -f "$ROOTFS_DIR/bin/sh" ]; then
-    ln -sf bash "$ROOTFS_DIR/bin/sh"
+  read -p "Do you want to install Ubuntu? (YES/no): " install_ubuntu
 fi
 
-# resolv.conf
-mkdir -p "$ROOTFS_DIR/etc"
-echo -e "nameserver 1.1.1.1\nnameserver 1.0.0.1" > "$ROOTFS_DIR/etc/resolv.conf"
+case $install_ubuntu in
+  [yY][eE][sS])
+    wget --tries=$max_retries --timeout=$timeout --no-hsts -O /tmp/rootfs.tar.gz \
+      "http://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.3-base-${ARCH_ALT}.tar.gz"
+    tar -xf /tmp/rootfs.tar.gz -C $ROOTFS_DIR
+    ;;
+  *)
+    echo "Skipping Ubuntu installation."
+    ;;
+esac
 
-# Цвета для вывода
+if [ ! -e $ROOTFS_DIR/.installed ]; then
+  mkdir $ROOTFS_DIR/usr/local/bin -p
+  wget --tries=$max_retries --timeout=$timeout --no-hsts -O $ROOTFS_DIR/usr/local/bin/proot "https://raw.githubusercontent.com/foxytouxxx/freeroot/main/proot-${ARCH}"
+
+  while [ ! -s "$ROOTFS_DIR/usr/local/bin/proot" ]; do
+    rm $ROOTFS_DIR/usr/local/bin/proot -rf
+    wget --tries=$max_retries --timeout=$timeout --no-hsts -O $ROOTFS_DIR/usr/local/bin/proot "https://raw.githubusercontent.com/foxytouxxx/freeroot/main/proot-${ARCH}"
+
+    if [ -s "$ROOTFS_DIR/usr/local/bin/proot" ]; then
+      chmod 755 $ROOTFS_DIR/usr/local/bin/proot
+      break
+    fi
+
+    chmod 755 $ROOTFS_DIR/usr/local/bin/proot
+    sleep 1
+  done
+
+  chmod 755 $ROOTFS_DIR/usr/local/bin/proot
+fi
+
+if [ ! -e $ROOTFS_DIR/.installed ]; then
+  printf "nameserver 1.1.1.1\nnameserver 1.0.0.1" > ${ROOTFS_DIR}/etc/resolv.conf
+  rm -rf /tmp/rootfs.tar.xz /tmp/sbin
+  touch $ROOTFS_DIR/.installed
+fi
+
 CYAN='\e[0;36m'
 WHITE='\e[0;37m'
+
 RESET_COLOR='\e[0m'
 
 display_gg() {
-    echo -e "${WHITE}___________________________________________________${RESET_COLOR}"
-    echo -e ""
-    echo -e "           ${CYAN}-----> Ubuntu Server Installed ! <----${RESET_COLOR}"
+  echo -e "${WHITE}___________________________________________________${RESET_COLOR}"
+  echo -e ""
+  echo -e "           ${CYAN}-----> Ubuntu 24.04 installed ! <----${RESET_COLOR}"
 }
 
 clear
 display_gg
 
-# Запуск proot
-"$PROOT_FILE" \
-  --rootfs="$ROOTFS_DIR" \
-  -0 -w "/root" -b /dev -b /sys -b /proc -b "$ROOTFS_DIR/etc/resolv.conf" --kill-on-exit
+$ROOTFS_DIR/usr/local/bin/proot \
+  --rootfs="${ROOTFS_DIR}" \
+  -0 -w "/root" -b /dev -b /sys -b /proc -b /etc/resolv.conf --kill-on-exit
