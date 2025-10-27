@@ -6,7 +6,7 @@ ARCH=$(uname -m)
 MAX_RETRIES=5
 TIMEOUT=5
 
-# Определяем архитектуру для скачивания
+# Определяем архитектуру
 if [ "$ARCH" = "x86_64" ]; then
     ARCH_ALT=amd64
 elif [ "$ARCH" = "aarch64" ]; then
@@ -18,23 +18,23 @@ fi
 
 echo "#######################################################################################"
 echo "#"
-echo "#                              Ubuntu FreeRoot 24.04 installer"
+echo "#                              Ubuntu FreeRoot 24.04 Server installer"
 echo "#"
 echo "#######################################################################################"
 
 ROOTFS_FILE="$ROOTFS_DIR/rootfs.tar.gz"
+ROOTFS_URL="http://cdimage.ubuntu.com/ubuntu/releases/24.04/release/ubuntu-24.04.3-server-amd64.tar.gz"
 
 # Всегда скачиваем rootfs заново
-echo "Downloading Ubuntu rootfs..."
-wget --tries=$MAX_RETRIES --timeout=$TIMEOUT --no-hsts -O "$ROOTFS_FILE" \
-"http://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.3-base-amd64.tar.gz" || {
+echo "Downloading Ubuntu Server rootfs..."
+wget --tries=$MAX_RETRIES --timeout=$TIMEOUT --no-hsts -O "$ROOTFS_FILE" "$ROOTFS_URL" || {
     echo "Failed to download rootfs"
     exit 1
 }
 
 # Чистим старый rootfs перед распаковкой
 echo "Extracting rootfs..."
-rm -rf "$ROOTFS_DIR/rootfs" "$ROOTFS_DIR/bin" "$ROOTFS_DIR/etc" "$ROOTFS_DIR/lib" "$ROOTFS_DIR/usr" "$ROOTFS_DIR/sbin" "$ROOTFS_DIR/tmp" 2>/dev/null
+rm -rf "$ROOTFS_DIR/bin" "$ROOTFS_DIR/etc" "$ROOTFS_DIR/lib" "$ROOTFS_DIR/usr" "$ROOTFS_DIR/sbin" "$ROOTFS_DIR/tmp" 2>/dev/null
 mkdir -p "$ROOTFS_DIR"
 tar -xf "$ROOTFS_FILE" -C "$ROOTFS_DIR" || {
     echo "Failed to extract rootfs"
@@ -74,13 +74,13 @@ RESET_COLOR='\e[0m'
 display_gg() {
     echo -e "${WHITE}___________________________________________________${RESET_COLOR}"
     echo -e ""
-    echo -e "           ${CYAN}-----> Ubuntu Installed ! <----${RESET_COLOR}"
+    echo -e "           ${CYAN}-----> Ubuntu Server Installed ! <----${RESET_COLOR}"
 }
 
 clear
 display_gg
 
-# Запуск proot
+# Запуск proot с systemd
 "$PROOT_FILE" \
   --rootfs="$ROOTFS_DIR" \
   -0 -w "/root" -b /dev -b /sys -b /proc -b "$ROOTFS_DIR/etc/resolv.conf" --kill-on-exit
