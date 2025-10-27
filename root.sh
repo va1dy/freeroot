@@ -30,7 +30,7 @@ case $install_ubuntu in
     if [ ! -f /tmp/rootfs.tar.gz ]; then
       echo "Downloading Ubuntu 24.04 (rootfs WSL)..."
       wget -v --tries=$max_retries --timeout=$timeout -O /tmp/rootfs.tar.gz \
-        "https://cloud-images.ubuntu.com/wsl/releases/24.04/current/ubuntu-noble-wsl-amd64-24.04lts.rootfs.tar.gz"
+        "https://cloud-images.ubuntu.com/releases/mantic/release/ubuntu-23.10-server-cloudimg-amd64.tar.gz"
       if [ $? -ne 0 ]; then
         echo "Failed to download Ubuntu. Exiting."
         exit 1
