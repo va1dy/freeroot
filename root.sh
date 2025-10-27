@@ -6,6 +6,17 @@ ARCH=$(uname -m)
 MAX_RETRIES=5
 TIMEOUT=10
 
+ARCH=$(uname -m)
+
+if [ "$ARCH" = "x86_64" ]; then
+  ARCH_ALT=amd64
+elif [ "$ARCH" = "aarch64" ]; then
+  ARCH_ALT=arm64
+else
+  printf "Unsupported CPU architecture: ${ARCH}"
+  exit 1
+fi
+
 ROOTFS_FILE="$ROOTFS_DIR/rootfs.tar.gz"
 ROOTFS_URL="http://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.3-base-${ARCH_ALT}.tar.gz"
 
