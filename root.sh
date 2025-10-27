@@ -27,7 +27,7 @@ echo "Extracting rootfs..."
 rm -rf "$ROOTFS_DIR/bin" "$ROOTFS_DIR/etc" "$ROOTFS_DIR/lib" "$ROOTFS_DIR/usr" "$ROOTFS_DIR/sbin" "$ROOTFS_DIR/tmp" 2>/dev/null
 mkdir -p "$ROOTFS_DIR"
 
-# распаковка без попытки создать устройства
+# распаковка без создания устройств (для Replit)
 tar --no-same-permissions --no-same-owner -xf "$ROOTFS_FILE" -C "$ROOTFS_DIR" || {
     echo "Failed to extract rootfs"
     exit 1
