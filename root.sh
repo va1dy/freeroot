@@ -7,7 +7,7 @@ MAX_RETRIES=5
 TIMEOUT=10
 
 ROOTFS_FILE="$ROOTFS_DIR/rootfs.tar.gz"
-ROOTFS_URL="https://cloud-images.ubuntu.com/releases/noble/release/ubuntu-24.04-server-cloudimg-amd64.tar.gz"
+ROOTFS_URL="http://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.3-base-${ARCH_ALT}.tar.gz"
 
 echo "#######################################################################################"
 echo "#"
