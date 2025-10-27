@@ -66,11 +66,14 @@ if [ ! -s "$PROOT_FILE" ]; then
     chmod 755 "$PROOT_FILE"
 fi
 
-# Создаём /root и /bin/sh если отсутствуют
-mkdir -p "$ROOTFS_DIR/root"
-mkdir -p "$ROOTFS_DIR/bin"
+# Проверяем наличие /bin/sh в rootfs
 if [ ! -f "$ROOTFS_DIR/bin/sh" ]; then
-    ln -s /bin/bash "$ROOTFS_DIR/bin/sh"
+    if [ -f "$ROOTFS_DIR/bin/bash" ]; then
+        ln -s bash "$ROOTFS_DIR/bin/sh"
+    else
+        echo "Error: /bin/bash not found in rootfs"
+        exit 1
+    fi
 fi
 
 # resolv.conf
