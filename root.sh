@@ -39,7 +39,8 @@ case $install_ubuntu in
 
     echo "Extracting rootfs..."
     mkdir -p $ROOTFS_DIR
-    tar --numeric-owner --no-same-owner --no-same-permissions -xzf /tmp/rootfs.tar.gz -C $ROOTFS_DIR
+    # Игнорируем ошибки создания устройств
+    tar --numeric-owner --no-same-owner --no-same-permissions --warning=no-dev -xzf /tmp/rootfs.tar.gz -C $ROOTFS_DIR || true
     ;;
   n|*)
     echo "Skipping Ubuntu installation."
@@ -54,6 +55,7 @@ if [ ! -f $ROOTFS_DIR/bin/sh ]; then
   ln -s /bin/bash $ROOTFS_DIR/bin/sh
 fi
 
+# Установка proot и зависимостей, если ещё не установлено
 if [ ! -e $ROOTFS_DIR/.installed ]; then
   mkdir -p $ROOTFS_DIR/usr/local/bin
   PROOT_URL="https://raw.githubusercontent.com/foxytouxxx/freeroot/main/proot-${ARCH}"
@@ -68,18 +70,16 @@ if [ ! -e $ROOTFS_DIR/.installed ]; then
   done
 
   chmod 755 $ROOTFS_DIR/usr/local/bin/proot
-fi
 
-if [ ! -e $ROOTFS_DIR/.installed ]; then
+  # Настройка сети
   mkdir -p $ROOTFS_DIR/etc
   printf "nameserver 1.1.1.1\nnameserver 1.0.0.1\n" > ${ROOTFS_DIR}/etc/resolv.conf
 
-  # Установим dbus и supervisor для управления демонами без systemd
+  # Установка dbus и supervisor внутри proot
   $ROOTFS_DIR/usr/local/bin/proot --rootfs="$ROOTFS_DIR" -0 -w "/root" /bin/bash -c "\
-    apt update && \
-    apt install -y dbus supervisor"
+    apt update && apt install -y dbus supervisor openssh-server"
 
-  # Создаем конфиг для supervisor, чтобы поднимать демоны автоматически
+  # Создание конфигурации supervisor для демонов
   mkdir -p $ROOTFS_DIR/etc/supervisor/conf.d
   cat <<EOF > $ROOTFS_DIR/etc/supervisor/conf.d/default.conf
 [supervisord]
@@ -108,7 +108,7 @@ display_gg() {
 clear
 display_gg
 
-# Запуск proot с supervisor (демоны поднимутся автоматически)
+# Запуск proot с supervisor для поднятия демонов
 $ROOTFS_DIR/usr/local/bin/proot \
   --rootfs="$ROOTFS_DIR" \
   -0 -w "/root" -b /dev -b /sys -b /proc -b /etc/resolv.conf \
